@@ -1,0 +1,16 @@
+{
+  "description": "Block git force pushes before they run: --force and its variants (--force-with-lease, --force-if-includes), -f alone or combined (-uf) and +refspecs (git push origin +main), also with git -C/-c options, a path to git, inside bash -c or in a chained command. Branch names that contain -f (my-feature) are not blocked. It errs on the side of blocking: a commit message that quotes a force push is blocked too. A guardrail, not a security boundary: git aliases and shell variables are not followed. Reads the command with jq when installed, otherwise matches the raw hook input.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "input=$(cat); cmd=$(printf '%s' \"$input\" | jq -r '.tool_input.command // empty' 2>/dev/null) || cmd=$input; if printf '%s\\n' \"$cmd\" | grep -Eq '(^|[[:space:];\\&|(\"'\"'\"'`/\\\\]|\\\\n)git([[:space:]]+-[^[:space:]]+([[:space:]]+[^-[:space:]][^[:space:]]*)?)*[[:space:]]+push([[:space:]]+[^;&|[:space:]]+)*[[:space:]]+(--force([-=][^[:space:]]*)?|-[a-zA-Z]*f[a-zA-Z]*|\\+[^[:space:]]+)([[:space:];\\&|)\"'\"'\"'`\\\\]|$)'; then echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"Force push is blocked by hook (--force, --force-with-lease, -f or a +refspec)\"}}'; fi"
+          }
+        ]
+      }
+    ]
+  }
+}
